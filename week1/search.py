@@ -20,19 +20,31 @@ def process_filters(filters_input):
     display_filters = []  # Also create the text we will use to display the filters that are applied
     applied_filters = ""
     for filter in filters_input:
-        type = request.args.get(filter + ".type")
-        display_name = request.args.get(filter + ".displayName", filter)
-        #
+        filter_type = request.args.get(f"{filter}.type")
+        display_name = request.args.get(f"{filter}.displayName", filter)
+        field = request.args.get(f"{filter}.field", filter)
+
         # We need to capture and return what filters are already applied so they can be automatically added to any existing links we display in aggregations.jinja2
-        applied_filters += "&filter.name={}&{}.type={}&{}.displayName={}".format(filter, filter, type, filter,
-                                                                                 display_name)
-        #TODO: IMPLEMENT AND SET filters, display_filters and applied_filters.
         # filters get used in create_query below.  display_filters gets used by display_filters.jinja2 and applied_filters gets used by aggregations.jinja2 (and any other links that would execute a search.)
-        if type == "range":
-            pass
-        elif type == "terms":
-            pass #TODO: IMPLEMENT
-    print("Filters: {}".format(filters))
+        if filter_type == "range":
+            range_filter = {}
+            low = ""
+            high = ""
+            if request.args.get(f"{filter}.low"):
+                low = request.args[f"{filter}.low"]
+                range_filter["gte"] = low
+            if request.args.get(f"{filter}.high"):
+                high = request.args[f"{filter}.high"]
+                range_filter["lt"] = high
+            filters.append({"range": {field: range_filter}})
+            display_filters += [f"{display_name} ({low}-{high})"]
+            applied_filters += f"&filter.name={filter}&{filter}.type={filter_type}&{filter}.displayName={display_name}&{filter}.low={low}&{filter}.high={high}"
+        elif filter_type == "terms":
+            key = request.args[f"{filter}.key"]
+            filters.append({"term": {field: key}})
+            display_filters += [f"{display_name}:{key}"]
+            applied_filters += "&" + "&".join([f"filter.name={filter}", f"{filter}.type={filter_type}", f"{filter}.displayName={display_name}", f"{filter}.key={key}"])
+
 
     return filters, display_filters, applied_filters
 
@@ -69,15 +81,17 @@ def query():
         if filters_input:
             (filters, display_filters, applied_filters) = process_filters(filters_input)
 
+        import pprint
+        print("filters == ")
+        pprint.pprint(filters)
+
         query_obj = create_query(user_query, filters, sort, sortDir)
     else:
         query_obj = create_query("*", [], sort, sortDir)
 
-    print("query obj: {}".format(query_obj))
-    response = None   # TODO: Replace me with an appropriate call to OpenSearch
-    # Postprocess results here if you so desire
+    response = opensearch.search(body=query_obj, index="bbuy_products")
 
-    #print(response)
+    # Postprocess results here if you so desire
     if error is None:
         return render_template("search_results.jinja2", query=user_query, search_response=response,
                                display_filters=display_filters, applied_filters=applied_filters,
@@ -88,13 +102,69 @@ def query():
 
 def create_query(user_query, filters, sort="_score", sortDir="desc"):
     print("Query: {} Filters: {} Sort: {}".format(user_query, filters, sort))
-    query_obj = {
-        'size': 10,
-        "query": {
-            "match_all": {} # Replace me with a query that both searches and filters
-        },
-        "aggs": {
-            #TODO: FILL ME IN
+
+    ret = {}
+
+    match_obj = {"multi_match":{"query": user_query, "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"]}}
+
+    if filters:
+        query_obj = {
+          "bool": {
+            "must": match_obj,
+            "filter": filters,
+          }
         }
+    else:
+        query_obj = match_obj
+
+    ret["size"] = 100
+    ret["query"] = query_obj
+
+    aggs = {
+      "regularPrice": {
+        "range": {
+          "field": "regularPrice",
+          "ranges": [
+            {
+              "key":"$",
+              "from":0,
+              "to":100
+            },
+            {
+              "key":"$$",
+              "from":100,
+              "to":200
+            },
+            {
+              "key":"$$$",
+              "from":200,
+              "to":300
+            },
+            {
+              "key":"$$$$",
+              "from":300,
+              "to":400
+            },
+            {
+              "key":"$$$$$",
+              "from":400
+            }
+          ]
+        }
+      },
+      "department": {
+        "terms": {
+          "field": "department",
+          "size": 10
+        }
+      },
+      "missing_images": {
+        "missing": {
+          "field": "image"
+        }
+      }
     }
-    return query_obj
+
+    ret["aggs"] = aggs
+
+    return ret
