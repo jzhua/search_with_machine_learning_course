@@ -105,7 +105,43 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
 
     ret = {}
 
-    match_obj = {"multi_match":{"query": user_query, "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"]}}
+    match_obj = {
+      "function_score": {
+        "query": {
+           "query_string": {
+                    "query": user_query,
+                    "fields": ["name^1000", "shortDescription^50", "longDescription^10", "department"]
+            }
+        },
+        "boost_mode": "multiply",
+        "score_mode": "avg",
+        "functions": [
+            {
+              "field_value_factor": {
+                  "field": "salesRankShortTerm",
+                  "modifier": "reciprocal",
+                  "missing": 100000000
+               }
+            },
+            {
+              "field_value_factor": {
+                  "field": "salesRankMediumTerm",
+                  "modifier": "reciprocal",
+                  "missing": 100000000
+               }
+            },
+            {
+              "field_value_factor": {
+                  "field": "salesRankLongTerm",
+                  "modifier": "reciprocal",
+                  "missing": 100000000
+               }
+            }
+        ]
+      }
+    }
+#    {"multi_match":{"query": user_query, "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"]}}
+#      "_source": ["productId", "name", "shortDescription", "longDescription", "department", "salesRankShortTerm",  "salesRankMediumTerm", "salesRankLongTerm", "regularPrice"]
 
     if filters:
         query_obj = {
