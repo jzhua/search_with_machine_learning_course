@@ -1,5 +1,71 @@
 {
   "settings": {
     "index.refresh_interval": "5s"
+  },
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        },
+        "analyzer": "english"
+      },
+      "shortDescription": {
+        "type": "text",
+        "analyzer": "english"
+      },
+      "longDescription": {
+        "type": "text",
+        "analyzer": "english"
+      },
+      "sku": {"type": "keyword"},
+      "type": {"type": "keyword"},
+      "active": {"type": "keyword"},
+      "onSale": {"type": "keyword"},
+      "digital": {"type": "keyword"},
+      "crossSell": {"type": "keyword"},
+      "url": {"type": "keyword"},
+      "class": {"type": "keyword"},
+      "subclass": {"type": "keyword"},
+      "department": {"type": "keyword"},
+      "description": {"type": "keyword"},
+      "manufacturer": {"type": "keyword"},
+      "modelNumber": {"type": "keyword"},
+      "image": {"type": "keyword"},
+      "condition": {"type": "keyword"},
+      "inStorePickup": {"type": "keyword"},
+      "homeDelivery": {"type": "keyword"},
+      "color": {"type": "keyword"},
+      "depth": {"type": "keyword"},
+      "height": {"type": "keyword"},
+      "weight": {"type": "keyword"},
+      "width": {"type": "keyword"},
+      "shortDescriptionHtml": {"type": "text"},
+      "longDescriptionHtml": {"type": "text"},
+      "classId": {"type": "keyword"},
+      "subclassId": {"type": "keyword"},
+      "departmentId": {"type": "keyword"},
+      "bestBuyItemId": {"type": "keyword"},
+      "productId": {"type": "keyword"},
+      "inStoreAvailability": {"type": "boolean"},
+      "onlineAvailability": {"type": "boolean"},
+      "startDate": {"type": "date"},
+      "releaseDate": {"type": "date"},
+      "quantityLimit": {"type": "integer"},
+      "salesRankShortTerm": {"type": "integer"},
+      "salesRankMediumTerm": {"type": "integer"},
+      "salesRankLongTerm": {"type": "integer"},
+      "bestSellingRank": {"type": "integer"},
+      "customerReviewCount": {"type": "integer"},
+      "regularPrice": {"type": "float"},
+      "salePrice": {"type": "float"},
+      "shippingWeight": {"type": "float"},
+      "shippingCost": {"type": "float"},
+      "customerReviewAverage": {"type": "float"}
+    }
   }
 }

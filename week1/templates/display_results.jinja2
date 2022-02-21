@@ -9,6 +9,7 @@
         {% endif %}
       </div>
       <div><span class="search-result-header">ID</span>: {{ hit._source.productId[0] }}</div>
+      <div><span class="search-result-header">SKU</span>: {{ hit._source.sku[0] }}</div>
       <div><span class="search-result-header">Description</span>:
         {% if hit._source.longDescription %}
           {#do we have a highlight?#}
@@ -24,6 +25,20 @@
           {% else %}
             {{ hit._source.shortDescription[0] }}
           {% endif %}
+        {% endif %}
+      </div>
+      <div>
+        <span class="search-result-header">Price</span>:
+            {% if hit._source.regularPrice[0] != hit._source.salePrice[0] %}
+            <strike>{{ hit._source.regularPrice[0] }}</strike>
+              {{ hit._source.salePrice[0] }}
+            {% else %}
+              {{ hit._source.regularPrice[0] }}
+            {% endif %}
+      </div>
+      <div>
+        {% if hit._source.image %}
+          <img src="{{ hit._source.image[0] }}" />
         {% endif %}
       </div>
     </div>
