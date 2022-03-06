@@ -3,10 +3,17 @@ import os
 import random
 import xml.etree.ElementTree as ET
 from pathlib import Path
+#from bs4 import BeautifulSoup
+import nltk
+from nltk.stem import SnowballStemmer
+import pandas as pd
+
+stemmer = SnowballStemmer("english")
 
 def transform_name(product_name):
-    # IMPLEMENT
-    return product_name
+    words = nltk.word_tokenize(product_name.lower())
+    return " ".join([stemmer.stem(w) for w in words if w.isalpha()])
+    
 
 # Directory for product data
 directory = r'/workspace/search_with_machine_learning_course/data/pruned_products/'
@@ -35,12 +42,16 @@ if args.input:
 min_products = args.min_products
 sample_rate = args.sample_rate
 
+products = pd.DataFrame(columns = ["cat", "name"])
+
 print("Writing results to %s" % output_file)
 with open(output_file, 'w') as output:
     for filename in os.listdir(directory):
         if filename.endswith(".xml"):
             print("Processing %s" % filename)
             f = os.path.join(directory, filename)
+            cats = []
+            names = []
             tree = ET.parse(f)
             root = tree.getroot()
             for child in root:
@@ -49,10 +60,13 @@ with open(output_file, 'w') as output:
                 # Check to make sure category name is valid
                 if (child.find('name') is not None and child.find('name').text is not None and
                     child.find('categoryPath') is not None and len(child.find('categoryPath')) > 0 and
-                    child.find('categoryPath')[len(child.find('categoryPath')) - 1][0].text is not None):
-                      # Choose last element in categoryPath as the leaf categoryId
-                      cat = child.find('categoryPath')[len(child.find('categoryPath')) - 1][0].text
-                      # Replace newline chars with spaces so fastText doesn't complain
+                    child.find('categoryPath')[len(child.find('categoryPath')) - 2][0].text is not None):
+                      # Choose (second) last element in categoryPath
+                      cat = child.find('categoryPath')[len(child.find('categoryPath')) - 2][0].text
+                      cats.append(cat)
                       name = child.find('name').text.replace('\n', ' ')
-                      output.write("__label__%s %s\n" % (cat, transform_name(name)))
+                      names.append(transform_name(name))
+            products = pd.concat([products, pd.DataFrame({"cat":cats, "name":names})])
 
+        for row in products.groupby(products["cat"]).filter(lambda g: len(g) >= min_products).itertuples():
+            output.write("__label__%s %s\n" % (row[1], row[2]))
