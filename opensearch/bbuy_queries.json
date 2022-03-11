@@ -1,5 +1,27 @@
 {
   "settings": {
     "index.refresh_interval": "5s"
+  },
+  "mappings": {
+    "properties": {
+      "user": {
+        "type": "text"
+      },
+      "sku": {
+        "type": "text"
+      },
+      "category": {
+        "type": "text"
+      },
+      "query": {
+        "type": "text"
+      },
+      "query_time": {
+        "type": "date"
+      },
+      "click_time": {
+        "type": "date"
+      }
+    }
   }
 }
